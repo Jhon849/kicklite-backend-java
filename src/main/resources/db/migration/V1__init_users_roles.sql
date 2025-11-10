@@ -1,0 +1,24 @@
+CREATE TABLE IF NOT EXISTS roles (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(30) NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(120) NOT NULL UNIQUE,
+    password VARCHAR(80) NOT NULL,
+    full_name VARCHAR(80) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS user_roles (
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role_id INT NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, role_id)
+);
+
+-- Roles por defecto
+INSERT INTO roles(name) VALUES ('ROLE_USER')
+ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO roles(name) VALUES ('ROLE_ADMIN')
+ON CONFLICT (name) DO NOTHING;
