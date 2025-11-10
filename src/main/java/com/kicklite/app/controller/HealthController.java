@@ -8,6 +8,6 @@ public class HealthController {
 
     @GetMapping("/")
     public String home() {
-        return "🚀 KickLite backend desplegado correctamente en Railway!";
+        return "✅ KickLite backend corriendo correctamente en Railway!";
     }
 }
