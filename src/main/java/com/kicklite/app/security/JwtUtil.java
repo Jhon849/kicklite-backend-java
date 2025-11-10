@@ -1,6 +1,8 @@
 package com.kicklite.app.security;
 
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -16,7 +18,8 @@ public class JwtUtil {
 
     public JwtUtil(
             @Value("${app.jwt.secret}") String secret,
-            @Value("${app.jwt.expiration-ms:86400000}") long expirationMs) {
+            @Value("${app.jwt.expiration-ms:86400000}") long expirationMs
+    ) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
         this.expirationMs = expirationMs;
     }
@@ -31,7 +34,11 @@ public class JwtUtil {
     }
 
     public String getSubject(String token) {
-        return Jwts.parserBuilder().setSigningKey(key).build()
-                .parseClaimsJws(token).getBody().getSubject();
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        return claims.getSubject();
     }
 }

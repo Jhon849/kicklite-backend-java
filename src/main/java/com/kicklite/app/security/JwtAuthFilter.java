@@ -1,10 +1,13 @@
 package com.kicklite.app.security;
 
-import jakarta.servlet.*;
-import jakarta.servlet.http.*;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.*;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -22,20 +25,27 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain chain)
             throws ServletException, IOException {
 
         String header = request.getHeader("Authorization");
+
         if (header != null && header.startsWith("Bearer ")) {
             try {
                 String token = header.substring(7);
                 String email = jwtUtil.getSubject(token);
                 UserDetails user = uds.loadUserByUsername(email);
+
                 UsernamePasswordAuthenticationToken auth =
                         new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(auth);
-            } catch (Exception ignored) { /* token inválido, continúa sin auth */ }
+            } catch (Exception ignored) {
+                // token inválido → continúa sin autenticar
+            }
         }
+
         chain.doFilter(request, response);
     }
 }
