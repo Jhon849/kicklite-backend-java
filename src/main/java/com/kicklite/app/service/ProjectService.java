@@ -13,5 +13,6 @@ public class ProjectService {
 
     public List<Project> all() { return repo.findAll(); }
     public Project create(Project p) { return repo.save(p); }
+    @SuppressWarnings("null")
     public void delete(Long id) { repo.deleteById(id); }
 }

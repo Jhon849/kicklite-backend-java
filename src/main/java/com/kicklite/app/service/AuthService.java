@@ -6,7 +6,10 @@ import com.kicklite.app.model.User;
 import com.kicklite.app.repository.RoleRepository;
 import com.kicklite.app.repository.UserRepository;
 import com.kicklite.app.security.JwtUtil;
-import org.springframework.security.authentication.*;
+
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -21,8 +24,13 @@ public class AuthService {
     private final AuthenticationManager authManager;
     private final JwtUtil jwt;
 
-    public AuthService(UserRepository users, RoleRepository roles, PasswordEncoder encoder,
-                       AuthenticationManager authManager, JwtUtil jwt) {
+    public AuthService(
+            UserRepository users,
+            RoleRepository roles,
+            PasswordEncoder encoder,
+            AuthenticationManager authManager,
+            JwtUtil jwt
+    ) {
         this.users = users;
         this.roles = roles;
         this.encoder = encoder;
@@ -31,22 +39,32 @@ public class AuthService {
     }
 
     public void register(RegisterRequest req) {
-        if (users.existsByEmail(req.email())) throw new RuntimeException("Email already used");
+        if (users.existsByEmail(req.email()))
+            throw new RuntimeException("Email already exists");
+
         User u = new User();
         u.setEmail(req.email());
         u.setFullName(req.fullName());
         u.setPassword(encoder.encode(req.password()));
+
         Role roleUser = roles.findByName("ROLE_USER")
-                .orElseThrow(() -> new RuntimeException("ROLE_USER missing"));
+                .orElseThrow(() -> new RuntimeException("Missing ROLE_USER"));
+
         u.getRoles().add(roleUser);
         users.save(u);
     }
 
     public JwtResponse login(LoginRequest req) {
-        authManager.authenticate(new UsernamePasswordAuthenticationToken(req.email(), req.password()));
-        var user = users.findByEmail(req.email()).orElseThrow();
+
+        Authentication auth = authManager.authenticate(
+                new UsernamePasswordAuthenticationToken(req.email(), req.password()));
+
+        var user = users.findByEmail(req.email())
+                .orElseThrow();
+
         String token = jwt.generate(user.getEmail());
-        List<String> roleNames = user.getRoles().stream().map(Role::getName).toList();
-        return new JwtResponse(token, user.getEmail(), roleNames);
+
+        return new JwtResponse(token, user.getId(), user.getEmail(), user.getFullName());
     }
 }
+
