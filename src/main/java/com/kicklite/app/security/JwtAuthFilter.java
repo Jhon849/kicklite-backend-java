@@ -1,54 +1,49 @@
 package com.kicklite.app.security;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
+import java.security.Key;
+import java.util.Date;
 
 @Component
-public class JwtAuthFilter extends OncePerRequestFilter {
+public class JwtUtil {
 
-    private final JwtUtil jwtUtil;
-    private final UserDetailsService uds;
+    @Value("${jwt.secret}")
+    private String secret;
 
-    public JwtAuthFilter(JwtUtil jwtUtil, UserDetailsService uds) {
-        this.jwtUtil = jwtUtil;
-        this.uds = uds;
+    private Key signingKey;
+
+    @PostConstruct
+    private void init() {
+        this.signingKey = Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain chain) throws ServletException, IOException {
+    public String generate(String email) {
+        return Jwts.builder()
+                .setSubject(email)
+                .setIssuedAt(new Date())
+                .signWith(signingKey, SignatureAlgorithm.HS256)
+                .compact();
+    }
 
-        String header = request.getHeader("Authorization");
+    public String getSubject(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(signingKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getSubject();
+    }
 
-        if (header != null && header.startsWith("Bearer ")) {
-            try {
-                String token = header.substring(7);
-                String email = jwtUtil.getSubject(token);
-                UserDetails user = uds.loadUserByUsername(email);
-
-                UsernamePasswordAuthenticationToken auth =
-                        new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-
-                SecurityContextHolder.getContext().setAuthentication(auth);
-
-            } catch (Exception ignored) {
-                // Token inválido → sigue sin autenticar
-            }
-        }
-
-        chain.doFilter(request, response);
+    public Key getSigningKey() {
+        return signingKey;
     }
 }
+
+
+
